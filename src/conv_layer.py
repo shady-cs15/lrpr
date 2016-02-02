@@ -4,6 +4,15 @@ import theano.tensor as T
 from theano.tensor.nnet import conv
 from theano.tensor.signal import downsample
 
+'''conv_pool_layer class consists of 
+    1. convolution
+    2. pooling
+    3. tanh non-linearity
+    zero padding is allowed to achieve 'same' border_mode
+    This implementation achieves 'same' border_mode for 3x3 kernels
+    switch matrix stores location from where max value is pooled
+'''
+
 class conv_pool_layer(object):
     
     def __init__(self, rng, input, filter_shape, image_shape, zero_pad=True, poolsize=(2, 2), read_file=False, W_input=None, b_input=None):
@@ -29,6 +38,11 @@ class conv_pool_layer(object):
         	self.W = W_input
         	self.b = b_input
 
+
+        ''' zero-padding done 
+            for achieving 'same' border mode
+            this implementation works for 3x3 kernel size
+        '''
         if zero_pad==True:
             input=input.transpose(2, 0, 1, 3)
             input=T.concatenate([T.shape_padleft(T.zeros_like(input[0]), 1), input, T.shape_padleft(T.zeros_like(input[0]), 1)], axis=0)
@@ -52,6 +66,17 @@ class conv_pool_layer(object):
             ds=poolsize,
             ignore_border=True
         )
+
+
+        '''
+            switch matrix for storing from where max pooling takes place
+            dimension : same as conv_out
+            - casted into int8
+            representation:
+            - 0: max pooled activation
+            - 1: other activations
+        '''
+        self.switch = T.abs_(1 - T.cast(T.sgn(T.abs_(conv_out - pooled_out.repeat(2, axis=2).repeat(2, axis=3))), 'int8'))
 
         self.output = T.tanh(pooled_out + self.b.dimshuffle('x', 0, 'x', 'x'))
 

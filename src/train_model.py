@@ -9,10 +9,9 @@ import numpy
 import sys
 
 import theano
-from theano import tensor as tensor
+from theano import function as fn #remove
+import theano.tensor as T #remove
 
-from conv_layer import conv_pool_layer
-from deconv_layer import deconv_unpool_layer
 from model import model
 
 def usage():
@@ -70,6 +69,17 @@ dummy_wt = ([dummy_wt, ]*2, )*5
 
 def train_nnet(rng, data_set, batch_size=5, learning_rate=0.07, init=False, params=dummy_wt):
 	train_model = model(rng, data_set[0], (img_h, img_w), batch_size=batch_size, params=params)
-	#print train_model.layer1.output.shape.eval()
+
+	# remove the following block made for visualisation
+	# block starts here
+	inp = T.tensor4()
+	train_ = model(rng, inp, (img_h, img_w), batch_size=batch_size, params=params)
+	f = fn([inp], train_.layer5.output)
+	f_img = f(data_set[0].eval())
+	plt.gray()
+	for i in range(1, 11):
+		plt.subplot(10, 1, i); plt.axis('off'); plt.imshow(f_img[0, i-1, :, :])
+	plt.show()
+	# block ends here
 
 train_nnet(rng, (train_set, ), 1)
