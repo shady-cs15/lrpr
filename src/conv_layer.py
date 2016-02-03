@@ -76,7 +76,7 @@ class conv_pool_layer(object):
             - 0: max pooled activation
             - 1: other activations
         '''
-        self.switch = T.abs_(1 - T.cast(T.sgn(T.abs_(conv_out - pooled_out.repeat(2, axis=2).repeat(2, axis=3))), 'int8'))
+        self.switch = T.abs_(1 - T.sgn(T.abs_(conv_out - pooled_out.repeat(2, axis=2).repeat(2, axis=3))))
 
         self.output = T.tanh(pooled_out + self.b.dimshuffle('x', 0, 'x', 'x'))
 

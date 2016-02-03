@@ -65,7 +65,7 @@ train_set = theano.shared(np.asarray(train_set, dtype=theano.config.floatX), bor
 
 rng = np.random.RandomState(23455)
 dummy_wt = theano.shared(numpy.asarray(rng.uniform(low=-1., high=-1., size=(1, 1)), dtype=theano.config.floatX), borrow=True)
-dummy_wt = ([dummy_wt, ]*2, )*5
+dummy_wt = ([dummy_wt, ]*2, )*12
 
 def train_nnet(rng, data_set, batch_size=5, learning_rate=0.07, init=False, params=dummy_wt):
 	train_model = model(rng, data_set[0], (img_h, img_w), batch_size=batch_size, params=params)
@@ -74,11 +74,11 @@ def train_nnet(rng, data_set, batch_size=5, learning_rate=0.07, init=False, para
 	# block starts here
 	inp = T.tensor4()
 	train_ = model(rng, inp, (img_h, img_w), batch_size=batch_size, params=params)
-	f = fn([inp], train_.layer5.output)
+	f = fn([inp], train_.layer12.output)
 	f_img = f(data_set[0].eval())
 	plt.gray()
-	for i in range(1, 11):
-		plt.subplot(10, 1, i); plt.axis('off'); plt.imshow(f_img[0, i-1, :, :])
+	for i in range(1, 2):
+		plt.subplot(1, 1, i); plt.axis('off'); plt.imshow(f_img[0, i-1, :, :])
 	plt.show()
 	# block ends here
 

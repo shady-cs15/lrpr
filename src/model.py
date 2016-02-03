@@ -1,4 +1,5 @@
 from conv_layer import conv_pool_layer
+from deconv_layer import deconv_unpool_layer
 
 class model(object):
 
@@ -65,4 +66,66 @@ class model(object):
 			read_file=init,
 			W_input=params[4][0],
 			b_input=params[4][1]
+		)
+
+		self.layer8 = deconv_unpool_layer(
+			rng,
+			input = self.layer5.output,
+			image_shape=(batch_size, 10, ((self.inp_h/2)/2)/2, ((self.inp_w/2)/2)/2),
+			filter_shape=(8, 10, 3, 3),
+			unpoolsize=(2, 2),
+			zero_pad=True,
+			switch=self.layer5.switch,
+			read_file=init,
+			W_input=params[7][0],
+			b_input=params[7][1]
+		)
+
+		self.layer9 = deconv_unpool_layer(
+			rng,
+			input = self.layer8.output,
+			image_shape=(batch_size, 8, (self.inp_h/2)/2, (self.inp_w/2)/2),
+			filter_shape=(5, 8, 3, 3),
+			unpoolsize=(2, 2),
+			zero_pad=True,
+			switch=self.layer4.switch,
+			read_file=init,
+			W_input=params[8][0],
+			b_input=params[8][1]
+		)
+
+		self.layer10 = deconv_unpool_layer(
+			rng,
+			input=self.layer9.output,
+			image_shape=(batch_size, 5, self.inp_h/2, self.inp_w/2),
+			filter_shape=(3, 5, 3, 3),
+			unpoolsize=(1, 1),
+			switch=None,
+			read_file=init,
+			W_input=params[9][0],
+			b_input=params[9][1]
+		)
+
+		self.layer11 = deconv_unpool_layer(
+			rng,
+			input=self.layer10.output,
+			image_shape=(batch_size, 3, self.inp_h/2, self.inp_w/2),
+			filter_shape=(2, 3, 3, 3),
+			unpoolsize=(2, 2),
+			switch=self.layer2.switch,
+			read_file=init,
+			W_input=params[10][0],
+			b_input=params[10][1]
+		)
+
+		self.layer12 = deconv_unpool_layer(
+			rng,
+			input=self.layer11.output,
+			image_shape=(batch_size, 2, self.inp_h, self.inp_w),
+			filter_shape=(1, 2, 3, 3),
+			unpoolsize=(1, 1),
+			switch=None,
+			read_file=init,
+			W_input=params[11][0],
+			b_input=params[11][1]
 		)
