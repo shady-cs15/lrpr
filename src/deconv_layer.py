@@ -6,14 +6,6 @@ import numpy
 
 class deconv_unpool_layer(object):
 
-	''' unpool function
-		uses switches to aid reconstruction
-		switches are stored during pooling in conv layers
-		~ params ~
-		switch: switch matrix 1 - max pool location, 0 - other locations
-		pad_bottom: repeat last row if height of output = 2 * height of input + 1
-		pad_right: repeat last column if output width = 2 * input width + 1
-	'''
 	def unpool(self, input, ds, switch=None, pad_bottom=False, pad_right=False):
 		output = input.repeat(ds[0], axis=2).repeat(ds[1], axis=3)
 
@@ -44,9 +36,6 @@ class deconv_unpool_layer(object):
 			pad_bottom = pad_bottom,
 			pad_right = pad_right
 		)
-
-		# remove
-		self.unpooled_out =  unpooled_out
 
 		if zero_pad==True:
 			input=unpooled_out.transpose(2, 0, 1, 3)

@@ -26,28 +26,21 @@ if len(sys.argv) < 3:
 img_h = int(sys.argv[1])
 img_w = int(sys.argv[2])
 
-
-''' read image files from dir
-	scaled-0.25 dir contains Karlsruhe sequence
-	_0081 scaled by a factor of 0.25
-'''
 image_files = []
 for f in os.listdir('../data/scaled-0.25'):
 	if f=='.DS_Store':
 		continue
 	image_files.append('../data/scaled-0.25/'+f)
 image_files.sort()
-n_images = 10 #len(image_files)
+n_images = 50 #len(image_files)
+n_train_images = int(.6*n_images)
+n_valid_images = int(.2*n_images)
+n_test_images = n_images -(n_train_images + n_valid_images)
 
-
-''' load data into train set & validation set
-	test set to be loaded and tested separately
-'''
-# TODO - valid set
 train_set = ()
 valid_set = ()
 test_set = ()
-for f in image_files[:n_images]:
+for f in image_files[:n_train_images]:
 	img = Image.open(f).convert('L')
 	img = np.array(img, dtype='float64') / 256.
 	img = img.reshape(1, 1, img_h, img_w)
@@ -55,7 +48,7 @@ for f in image_files[:n_images]:
 train_set = numpy.concatenate(train_set, axis=0)
 train_set = theano.shared(np.asarray(train_set, dtype=theano.config.floatX), borrow=True)
 
-for f in image_files[n_images:n_images+5]:
+for f in image_files[n_train_images:n_train_images+n_test_images]:
 	img = Image.open(f).convert('L')
 	img = np.array(img, dtype='float64') / 256.
 	img = img.reshape(1, 1, img_h, img_w)
@@ -63,22 +56,20 @@ for f in image_files[n_images:n_images+5]:
 valid_set = numpy.concatenate(valid_set, axis=0)
 valid_set = theano.shared(np.asarray(valid_set, dtype=theano.config.floatX), borrow=True)
 
-
-''' function to train the model
-	data_set : (train_set, valid_set, test_set)
-	batch_size : mini batch size for SGD
-	learning_rate : initial learning rate
-	init : if True, parameters are passed as params argument
-	params: if init is true, pass parameters
-'''
-# TODO - make adaptive learning rate
+for f in image_files[n_train_images+n_test_images:]:
+	img = Image.open(f).convert('L')
+	img = np.array(img, dtype='float64') / 256.
+	img = img.reshape(1, 1, img_h, img_w)
+	test_set+=(img, )
+test_set = numpy.concatenate(test_set, axis=0)
+test_set = theano.shared(np.asarray(test_set, dtype=theano.config.floatX), borrow=True)
 
 rng = np.random.RandomState(23455)
 dummy_wt = theano.shared(numpy.asarray(rng.uniform(low=-1., high=-1., size=(1, 1)), dtype=theano.config.floatX), borrow=True)
 params = ([dummy_wt, ]*2, )*12
 
 
-def pretrain_nnet(data_set, n_images=100, batch_size=5, learning_rate=0.07):
+def pretrain_nnet(data_set, n_train_images=100, batch_size=5, learning_rate=0.07):
 	layer0 = data_set
 	layer1, params_1 = pretrain_conv_autoencoder(1, layer0, (batch_size, 1, 96, 336), (2, 1, 3, 3), 5, (1, 1), learning_rate)
 	layer2, params_2 = pretrain_conv_autoencoder(2, layer1.output, (batch_size, 2, 96, 336), (3, 2, 3, 3), 5, (2, 2), learning_rate)
@@ -92,9 +83,6 @@ def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.07, init
 
 	x = T.tensor4('x')
 	index = T.lscalar()
-
-	print params[10][1].shape.eval()
-	print params[1][1].shape.eval()
 
 	model_ = model(rng, x, (img_h, img_w), batch_size=batch_size, init=init, params=params)
 
@@ -111,12 +99,16 @@ def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.07, init
 	})
 
 	valid_fn = fn([index], cost, givens={
-		x:data_set[0][index*batch_size: (index+1)*batch_size]
+		x:data_set[1][index*batch_size: (index+1)*batch_size]
+	})
+
+	test_fn = fn([index], cost, givens={
+		x:data_set[2][index*batch_size: (index+1)*batch_size]
 	})
 
 	n_train_batches = n_examples[0]/batch_size
 	n_valid_batches = n_examples[1]/batch_size
-	#n_test_batches = n_examples[2]/batch_size
+	n_test_batches = n_examples[2]/batch_size
 
 	epoch = 0
 	n_epochs = 500
@@ -141,7 +133,7 @@ def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.07, init
 			if (iter+1)%validation_freq==0:
 				validation_losses=[valid_fn(i) for i in xrange(n_valid_batches)]
 				this_validation_loss = np.mean(validation_losses)
-				print ('epoch %i, minibatch %i%i, mean validation reconstruction error: %f ' %(epoch, mini_batch_index+1, n_train_batches, this_validation_loss*100.))
+				print ('epoch %i, minibatch %i/%i, mean validation reconstruction error: %f ' %(epoch, mini_batch_index+1, n_train_batches, this_validation_loss))
 
 		if this_validation_loss<best_validation_err:
 			if this_validation_loss<best_validation_err*improve_threshold:
@@ -150,24 +142,27 @@ def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.07, init
 			best_validation_err=this_validation_loss
 			best_iter=iter
 
-			# this where test reconstruction error is to be computed
+			test_losses=[
+				test_fn(i)
+				for i in xrange(n_test_batches)
+			]
+			test_err=np.mean(test_losses)
+			print '\tepoch %i, minibatch %i/%i, mean test reconstruction error: %f' %(epoch, mini_batch_index+1, n_train_batches, test_err)
 
 		if patience<=iter:
 			done_looping=True
 			break
 
 	# remove the following block made for visualisation
-	# block starts here
-	#return train_model.layer5.output[0, 0, :, :].eval()
-	'''inp = T.tensor4()
-	train_ = model(rng, inp, (img_h, img_w), batch_size=batch_size, params=params)
-	f = fn([inp], train_.layer12.output)
-	f_img = f(data_set[0].eval())
-	plt.gray()
-	for i in range(1, 2):
-		plt.subplot(1, 1, i); plt.axis('off'); plt.imshow(f_img[0, i-1, :, :])
-	plt.show()'''
+	# inp = T.tensor4()
+	# train_ = model(rng, inp, (img_h, img_w), batch_size=batch_size, params=params)
+	# f = fn([inp], train_.layer12.output)
+	# f_img = f(data_set[0].eval())
+	# plt.gray()
+	# for i in range(1, 2):
+	#	plt.subplot(1, 1, i); plt.axis('off'); plt.imshow(f_img[0, i-1, :, :])
+	# plt.show()
 	# block ends here
 
-params = pretrain_nnet(train_set, n_images)
-train_nnet(rng, (train_set, valid_set), (10, 5), init=True, params=params)
+params = pretrain_nnet(train_set, n_train_images)
+train_nnet(rng, (train_set, valid_set, test_set), (n_train_images, n_valid_images, n_test_images), init=True, params=params)

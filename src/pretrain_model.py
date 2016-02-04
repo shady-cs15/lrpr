@@ -24,7 +24,7 @@ def pretrain_conv_autoencoder(layer_index, input, image_shape, kernel_shape, bat
 	kernel_shape2=(kernel_shape[1], kernel_shape[0], kernel_shape[2],kernel_shape[3])
 	image_shape2=(image_shape[0], kernel_shape[0], image_shape[2], image_shape[3])
 
-	W_ = hidden_layer.W.transpose(1, 0, 2, 3)#.shape.eval()
+	W_ = hidden_layer.W.transpose(1, 0, 2, 3)
 	
 	output_layer = conv_pool_layer(
 		rng,
