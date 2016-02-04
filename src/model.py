@@ -1,9 +1,13 @@
 from conv_layer import conv_pool_layer
 from deconv_layer import deconv_unpool_layer
 
+import theano
+import numpy as np
+
 class model(object):
 
 	def __init__(self, rng, input, input_dim, batch_size=5, init=False, params=None):
+		
 		self.input = input
 		self.inp_h = input_dim[0]
 		self.inp_w = input_dim[1]
