@@ -32,7 +32,7 @@ for f in os.listdir('../data/scaled-0.25'):
 		continue
 	image_files.append('../data/scaled-0.25/'+f)
 image_files.sort()
-n_images = 50 #len(image_files)
+n_images = len(image_files)
 n_train_images = int(.6*n_images)
 n_valid_images = int(.2*n_images)
 n_test_images = n_images -(n_train_images + n_valid_images)
@@ -111,7 +111,7 @@ def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.07, init
 	n_test_batches = n_examples[2]/batch_size
 
 	epoch = 0
-	n_epochs = 500
+	n_epochs = 200
 	done_looping = False
 	patience = 10000
 	patience_increase = 2
