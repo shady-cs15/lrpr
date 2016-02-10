@@ -41,6 +41,7 @@ train_set = ()
 valid_set = ()
 test_set = ()
 for f in image_files[:n_train_images]:
+	print 'train', f
 	img = Image.open(f).convert('L')
 	img = np.array(img, dtype='float64') / 256.
 	img = img.reshape(1, 1, img_h, img_w)
@@ -48,7 +49,8 @@ for f in image_files[:n_train_images]:
 train_set = numpy.concatenate(train_set, axis=0)
 train_set = theano.shared(np.asarray(train_set, dtype=theano.config.floatX), borrow=True)
 
-for f in image_files[n_train_images:n_train_images+n_test_images]:
+for f in image_files[n_train_images:n_train_images+n_valid_images]:
+	print 'valid',f
 	img = Image.open(f).convert('L')
 	img = np.array(img, dtype='float64') / 256.
 	img = img.reshape(1, 1, img_h, img_w)
@@ -56,7 +58,8 @@ for f in image_files[n_train_images:n_train_images+n_test_images]:
 valid_set = numpy.concatenate(valid_set, axis=0)
 valid_set = theano.shared(np.asarray(valid_set, dtype=theano.config.floatX), borrow=True)
 
-for f in image_files[n_train_images+n_test_images:]:
+for f in image_files[n_train_images+n_valid_images:]:
+	print 'test', f
 	img = Image.open(f).convert('L')
 	img = np.array(img, dtype='float64') / 256.
 	img = img.reshape(1, 1, img_h, img_w)
@@ -68,19 +71,49 @@ rng = np.random.RandomState(23455)
 dummy_wt = theano.shared(numpy.asarray(rng.uniform(low=-1., high=-1., size=(1, 1)), dtype=theano.config.floatX), borrow=True)
 params = ([dummy_wt, ]*2, )*12
 
+def dump_params(params, save_file):
+	W, b = params
+	save_file = open(save_file, 'wb')
+	cPickle.dump(W.get_value(borrow=True), save_file, -1)
+	cPickle.dump(b.get_value(borrow=True), save_file, -1)
+	save_file.close()
+	print 'params dumped in', save_file 
 
-def pretrain_nnet(data_set, n_train_images=100, batch_size=5, learning_rate=0.07):
+def pretrain_nnet(data_set, n_train_images=100, batch_size=5, learning_rate=0.1):
+	print '\n', '#'*50
+	print 'starting Greedy Layerwise Unsupervised Pretraining ...'
 	layer0 = data_set
+
 	layer1, params_1 = pretrain_conv_autoencoder(1, layer0, (batch_size, 1, 96, 336), (2, 1, 3, 3), 5, (1, 1), learning_rate)
+	dump_params(layer1.params, 'pretrainparams1.pkl')
+	dump_params(params_1, 'pretrainparams_1.pkl')
+	print '\n'
+
 	layer2, params_2 = pretrain_conv_autoencoder(2, layer1.output, (batch_size, 2, 96, 336), (3, 2, 3, 3), 5, (2, 2), learning_rate)
+	dump_params(layer2.params, 'pretrainparams2.pkl')
+	dump_params(params_2, 'pretrainparams_2.pkl')
+	print '\n'
+
 	layer3, params_3 = pretrain_conv_autoencoder(3, layer2.output, (batch_size, 3, 48, 168), (5, 3, 3, 3), 5, (1, 1), learning_rate)
+	dump_params(layer3.params, 'pretrainparams3.pkl')
+	dump_params(params_3, 'pretrainparams_3.pkl')
+	print '\n'
+
 	layer4, params_4 = pretrain_conv_autoencoder(4, layer3.output, (batch_size, 5, 48, 168), (8, 5, 3, 3), 5, (2, 2), learning_rate)
+	dump_params(layer4.params, 'pretrainparams4.pkl')
+	dump_params(params_4, 'pretrainparams_4.pkl')
+	print '\n'
+
 	layer5, params_5 = pretrain_conv_autoencoder(5, layer4.output, (batch_size, 8, 24, 84), (10, 8, 3, 3), 5, (2, 2), learning_rate)
+	dump_params(layer5.params, 'pretrainparams5.pkl')
+	dump_params(params_5, 'pretrainparams_5.pkl')
+	print '\n'
 	
 	return layer1.params, layer2.params, layer3.params, layer4.params, layer5.params, params_5, params_5, params_5, params_4, params_3, params_2, params_1
 
-def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.07, init=False, params=None):
-
+def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.1, init=False, params=None):
+	print '#'*50
+	print 'Starting global fine tuning ...'
 	x = T.tensor4('x')
 	index = T.lscalar()
 
@@ -163,6 +196,11 @@ def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.07, init
 	#	plt.subplot(1, 1, i); plt.axis('off'); plt.imshow(f_img[0, i-1, :, :])
 	# plt.show()
 	# block ends here
+	save_file = open('trained_params.pkl', 'wb')
+	for i in range(len(params)):
+		cPickle.dump(params[i].get_value(borrow=True), save_file, -1)
+	save_file.close()
+	print 'saved trained params @', save_file
 
 params = pretrain_nnet(train_set, n_train_images)
 train_nnet(rng, (train_set, valid_set, test_set), (n_train_images, n_valid_images, n_test_images), init=True, params=params)

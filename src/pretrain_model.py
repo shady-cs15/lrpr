@@ -58,7 +58,6 @@ def pretrain_conv_autoencoder(layer_index, input, image_shape, kernel_shape, bat
 		for mini_batch_index in range(n_batches):
 			costs.append(pretrain_fn(mini_batch_index))
 		print 'layer: %d, epoch: %d, cost: ' %(layer_index, epoch), np.mean(costs)
-	print '\n'
 
 	if (unpool==True):
 		return deconv_unpool_layer(rng, input, kernel_shape, input.shape.eval(), unpoolsize=poolsize, switch=switch, read_file=True, W_input=hidden_layer.W, b_input=hidden_layer.b)
