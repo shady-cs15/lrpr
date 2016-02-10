@@ -25,16 +25,41 @@ x = T.tensor4('x')
 vis_model = model(np.random.RandomState(23455), x, (96, 336), 1, True, params)
 visualize = fn([x], [vis_model.layer1.output, vis_model.layer2.output, vis_model.layer3.output, vis_model.layer4.output, vis_model.layer5.output, vis_model.layer8.output, vis_model.layer9.output, vis_model.layer10.output, vis_model.layer11.output, vis_model.layer12.output ])
 
-image = '../data/scaled-0.25/I1_000303.png'# + os.listdir('../data/scaled-0.25')[0]
+image = '../data/scaled-0.25/I1_000303.png'
 image = Image.open(image).convert('L')
 image = np.array(image, dtype='float32') / 256.
 image = image.reshape(1, 1, 96, 336)
 outputs = visualize(image)
 
-plt.gray()
-plt.subplot(1, 1, 1); plt.axis('off'); plt.imshow(outputs[5][0, 1, :, :]);
+
+image_files = []
+for f in os.listdir('../data/scaled-0.25'):
+	if f=='.DS_Store':
+		continue
+	image_files.append('../data/scaled-0.25/'+f)
+image_files.sort()
+
+rep_list = []
+conf_list = []
+for img in image_files:
+	img = Image.open(img).convert('L')
+	img = np.array(img, dtype='float32')/256.
+	img = img.reshape(1, 1, 96, 336)
+	outputs = visualize(img)
+	representation = outputs[4].flatten()
+	rep_list.append(representation)
+
+for i in range(len(rep_list)):
+	temp_list = []
+	for j in range(len(rep_list)):
+		temp_list.append(np.sum(np.square(rep_list[i]- rep_list[j])))
+	conf_list.append(temp_list)
+
+conf_mat = np.array(conf_list, dtype='float64')
+plt.subplot(1, 1, 1); plt.axis([0, 340, 0, 340]); plt.imshow(conf_mat);
 plt.show()
 
+plt.gray()
 plt.subplot(10, 11, 1); plt.axis('off'); plt.imshow(image[0, 0, :, :])
 layer_sizes = [2, 3, 5, 8, 10, 8, 5, 3, 2, 1]
 
@@ -45,3 +70,4 @@ for i in range(10):
 		position+=11
 	
 plt.show()
+
