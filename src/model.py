@@ -1,7 +1,10 @@
 from conv_layer import conv_pool_layer
 from deconv_layer import deconv_unpool_layer
+from auto_encoder import hidden_layer
 
 import theano
+import theano.tensor as T
+
 import numpy as np
 
 class model(object):
@@ -64,7 +67,7 @@ class model(object):
 			rng,
 			input = self.layer4.output,
 			image_shape=(batch_size, 8, (self.inp_h/2)/2, (self.inp_w/2)/2),
-			filter_shape=(10, 8, 3, 3),
+			filter_shape=(5, 8, 3, 3),
 			poolsize=(2, 2),
 			zero_pad=True,
 			read_file=init,
@@ -72,11 +75,41 @@ class model(object):
 			b_input=params[4][1]
 		)
 
+		# layer 6 is the embedding
+		n_feature_maps = 5
+		# embedding space input: batch_size x 5 x linearised vector(504)
+		# embedding space o/p: batch_size x 5 x 40
+		embedding_input = T.reshape(self.layer5.output, (batch_size, n_feature_maps, (12*42)))
+
+		self.layer6 = hidden_layer(
+			rng,
+			input = embedding_input,
+			n_feature_maps=n_feature_maps,
+			n_in=504,
+			n_out=40,
+			read_file=init,
+			W=params[5][0],
+			b=params[5][1])
+
+		# layer 7 i/p: batch_size x 5 x 40
+		# layer 7 o/p: batch_size x 5 x linearised vector(504)
+		# before passing it to layer8 reformat it into batch_size x 5 x (row x col)
+		self.layer7 = hidden_layer(
+			rng,
+			input = self.layer6.output,
+			n_feature_maps=n_feature_maps,
+			n_in=40,
+			n_out=504,
+			read_file=init,
+			W=params[6][0],
+			b=params[6][1])
+		embedding_output = T.reshape(self.layer7.output, (batch_size, n_feature_maps, 12, 42))
+
 		self.layer8 = deconv_unpool_layer(
 			rng,
-			input = self.layer5.output,
-			image_shape=(batch_size, 10, ((self.inp_h/2)/2)/2, ((self.inp_w/2)/2)/2),
-			filter_shape=(8, 10, 3, 3),
+			input = embedding_output,#self.layer5.output,
+			image_shape=(batch_size, 5, ((self.inp_h/2)/2)/2, ((self.inp_w/2)/2)/2),
+			filter_shape=(8, 5, 3, 3),
 			unpoolsize=(2, 2),
 			zero_pad=True,
 			non_linearity=True,

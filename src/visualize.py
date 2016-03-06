@@ -54,16 +54,28 @@ for i in range(len(rep_list)):
 		temp_list.append(np.sum(np.square(rep_list[i]- rep_list[j])))
 	conf_list.append(temp_list)
 
-conf_mat = np.array(conf_list, dtype='float64')
-plt.subplot(1, 1, 1); plt.axis([0, 340, 0, 340]); plt.imshow(conf_mat);
+# querying
+query_index = 300
+ordered_matches = list(conf_list[query_index])
+ordered_matches.sort()
+for i in ordered_matches[1:21]:
+	print 'L2 -', i, ', frame id :', conf_list[query_index].index(i)
+
+conf_mat = np.array([conf_list[query_index]]*15, dtype='float64')#conf_list, dtype='float64')
+plt.gray()
+plt.subplot(1, 1, 1); #plt.axis([0, 340, 0, 340]); 
+plt.axis('off');
+plt.imshow(conf_mat);
 plt.show()
 
+'''
 plt.gray()
 plt.subplot(1, 1, 1); plt.axis('off'); plt.imshow(outputs[-1][0, 0, :, :])
 plt.show()
 
+
 plt.subplot(10, 11, 1); plt.axis('off'); plt.imshow(image[0, 0, :, :])
-layer_sizes = [2, 3, 5, 8, 10, 8, 5, 3, 2, 1]
+layer_sizes = [2, 3, 5, 8, 5, 8, 5, 3, 2, 1]
 
 for i in range(10):
 	position = i+2
@@ -72,4 +84,4 @@ for i in range(10):
 		position+=11
 	
 plt.show()
-
+'''

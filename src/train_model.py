@@ -14,7 +14,7 @@ from theano import function as fn
 import theano.tensor as T
 
 from model import model
-from pretrain_model import pretrain_conv_autoencoder
+from pretrain_model import pretrain_conv_autoencoder, pretrain_local_autoencoders
 
 def usage():
 	print 'Usage: python train_model.py img_h img_w'
@@ -104,12 +104,18 @@ def pretrain_nnet(data_set, n_train_images=100, batch_size=5, learning_rate=0.1)
 	dump_params(params_4, 'pretrainparams_4.pkl')
 	print '\n'
 
-	layer5, params_5 = pretrain_conv_autoencoder(5, layer4.output, (batch_size, 8, 24, 84), (10, 8, 3, 3), 5, (2, 2), learning_rate)
+	layer5, params_5 = pretrain_conv_autoencoder(5, layer4.output, (batch_size, 8, 24, 84), (5, 8, 3, 3), 5, (2, 2), learning_rate)
 	dump_params(layer5.params, 'pretrainparams5.pkl')
 	dump_params(params_5, 'pretrainparams_5.pkl')
 	print '\n'
+
+	layer6_input = T.reshape(layer5.output, (layer5.output.shape.eval()[0], 5, 504))
+	layer6, params_6 = pretrain_local_autoencoders(6, layer6_input, 5, 504, 40, 5, learning_rate)
+	dump_params(layer6.params, 'pretrainparams6.pkl')
+	dump_params(params_6, 'pretrainparams_6.pkl')
+	print '\n'
 	
-	return layer1.params, layer2.params, layer3.params, layer4.params, layer5.params, params_5, params_5, params_5, params_4, params_3, params_2, params_1
+	return layer1.params, layer2.params, layer3.params, layer4.params, layer5.params, layer6.params, params_6, params_5, params_4, params_3, params_2, params_1
 
 def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.1, init=False, params=None):
 	print '#'*50
@@ -120,7 +126,7 @@ def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.1, init=
 	model_ = model(rng, x, (img_h, img_w), batch_size=batch_size, init=init, params=params)
 
 	cost = T.mean(T.sqr(model_.layer12.output-x))
-	params = model_.layer1.params + model_.layer2.params + model_.layer3.params + model_.layer4.params + model_.layer5.params + model_.layer8.params + model_.layer9.params + model_.layer10.params + model_.layer11.params + model_.layer12.params
+	params = model_.layer1.params + model_.layer2.params + model_.layer3.params + model_.layer4.params + model_.layer5.params + model_.layer6.params + model_.layer7.params + model_.layer8.params + model_.layer9.params + model_.layer10.params + model_.layer11.params + model_.layer12.params
 	grads = T.grad(cost, params)
 	updates = [
 		(param_i, param_i - learning_rate*grad_i)
