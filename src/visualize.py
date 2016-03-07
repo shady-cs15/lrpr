@@ -11,6 +11,9 @@ import theano.tensor as T
 
 from model import model
 
+#remove
+from auto_encoder import hidden_layer
+
 load_file = open('params/trained_params.pkl', 'r')
 params = ()
 for i in range(12):  # update the value, depends on which layer params are being saved
@@ -30,9 +33,20 @@ image = Image.open(image).convert('L')
 image = np.array(image, dtype='float32') / 256.
 image = image.reshape(1, 1, 96, 336)
 outputs = visualize(image)
-print 'hallelujah'
-
-
+'''print outputs.shape
+e_inp = T.reshape(outputs, (1, 5, 504))
+layer6 = hidden_layer(
+	np.random.RandomState(23455),
+	input = e_inp,
+	n_feature_maps=5,
+	n_in=504,
+	n_out=40,
+	b_size=1,
+	read_file=True,
+	W=params[5][0],
+	b=params[5][1])
+print layer6.output.shape.eval()
+'''
 image_files = []
 for f in os.listdir('../data/scaled-0.25'):
 	if f=='.DS_Store':
@@ -62,13 +76,19 @@ ordered_matches.sort()
 for i in ordered_matches[1:21]:
 	print 'L2 -', i, ', frame id :', conf_list[query_index].index(i)
 
-conf_mat = np.array([conf_list[query_index]]*15, dtype='float64')#conf_list, dtype='float64')
+conf_mat = np.array(conf_list, dtype='float64')
 plt.gray()
-plt.subplot(1, 1, 1); #plt.axis([0, 340, 0, 340]); 
+plt.subplot(1, 1, 1); 
 plt.axis('off');
 plt.imshow(conf_mat);
 plt.show()
 
+query_mat = np.array([conf_list[query_index]]*15, dtype='float64')
+plt.gray()
+plt.subplot(1, 1, 1); 
+plt.axis('off');
+plt.imshow(query_mat);
+plt.show()
 
 plt.gray()
 plt.subplot(1, 1, 1); plt.axis('off'); plt.imshow(outputs[-1][0, 0, :, :])

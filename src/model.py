@@ -87,6 +87,7 @@ class model(object):
 			n_feature_maps=n_feature_maps,
 			n_in=504,
 			n_out=40,
+			b_size=batch_size,
 			read_file=init,
 			W=params[5][0],
 			b=params[5][1])
@@ -100,6 +101,7 @@ class model(object):
 			n_feature_maps=n_feature_maps,
 			n_in=40,
 			n_out=504,
+			b_size=batch_size,
 			read_file=init,
 			W=params[6][0],
 			b=params[6][1])
