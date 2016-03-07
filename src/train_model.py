@@ -16,6 +16,9 @@ import theano.tensor as T
 from model import model
 from pretrain_model import pretrain_conv_autoencoder, pretrain_local_autoencoders
 
+# remove if needed
+from conv_layer import conv_pool_layer
+
 def usage():
 	print 'Usage: python train_model.py img_h img_w'
 	sys.exit(1)
@@ -83,7 +86,7 @@ def pretrain_nnet(data_set, n_train_images=100, batch_size=5, learning_rate=0.1)
 	print '\n', '#'*50
 	print 'starting Greedy Layerwise Unsupervised Pretraining ...'
 	layer0 = data_set
-
+	'''
 	layer1, params_1 = pretrain_conv_autoencoder(1, layer0, (batch_size, 1, 96, 336), (2, 1, 3, 3), 5, (1, 1), learning_rate)
 	dump_params(layer1.params, 'pretrainparams1.pkl')
 	dump_params(params_1, 'pretrainparams_1.pkl')
@@ -108,14 +111,45 @@ def pretrain_nnet(data_set, n_train_images=100, batch_size=5, learning_rate=0.1)
 	dump_params(layer5.params, 'pretrainparams5.pkl')
 	dump_params(params_5, 'pretrainparams_5.pkl')
 	print '\n'
+	'''
+
+	n_pretrained_layers = 5
+	n_test = train_set.shape.eval()[0]
+	img_shapes = [(n_test, 1, 96, 336), (n_test, 2, 96, 336), (n_test, 3, 48, 168), (n_test, 5, 48, 168), (n_test, 8, 24, 84)]
+	k_shapes = [(2, 1, 3, 3), (3, 2, 3, 3), (5, 3, 3, 3), (8, 5, 3, 3), (5, 8, 3, 3)]
+	p_shapes = [(1, 1), (2, 2), (1, 1), (2, 2), (2, 2)]
+	for i in range(n_pretrained_layers):
+		load_file = open('pretrainparams'+str(i+1)+'.pkl')
+		W = theano.shared(cPickle.load(load_file), borrow=True)
+		b = theano.shared(cPickle.load(load_file), borrow=True)
+		layer0 = conv_pool_layer(rng, layer0, k_shapes[i], img_shapes[i], poolsize=p_shapes[i], read_file=True, W_input=W, b_input=b)
+		layer5 = layer0
+		layer0 = layer0.output
+		load_file.close()
 
 	layer6_input = T.reshape(layer5.output, (layer5.output.shape.eval()[0], 5, 504))
 	layer6, params_6 = pretrain_local_autoencoders(6, layer6_input, 5, 504, 40, 5, learning_rate)
 	dump_params(layer6.params, 'pretrainparams6.pkl')
 	dump_params(params_6, 'pretrainparams_6.pkl')
 	print '\n'
-	
-	return layer1.params, layer2.params, layer3.params, layer4.params, layer5.params, layer6.params, params_6, params_5, params_4, params_3, params_2, params_1
+
+	layerwise_params = []
+	for i in range(6):
+		load_file = open('pretrainparams'+str(i+1)+'.pkl')
+		W = theano.shared(cPickle.load(load_file), borrow=True)
+		b = theano.shared(cPickle.load(load_file), borrow=True)
+		layerwise_params.append([W, b])
+		load_file.close()
+
+	for i in range(6, 0, -1):
+		load_file = open('pretrainparams_'+str(i)+'.pkl')
+		W = theano.shared(cPickle.load(load_file), borrow=True)
+		b = theano.shared(cPickle.load(load_file), borrow=True)
+		layerwise_params.append([W, b])
+		load_file.close()
+
+	return layerwise_params
+	#return layer1.params, layer2.params, layer3.params, layer4.params, layer5.params, layer6.params, params_6, params_5, params_4, params_3, params_2, params_1
 
 def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.1, init=False, params=None):
 	print '#'*50

@@ -13,23 +13,24 @@ from model import model
 
 load_file = open('params/trained_params.pkl', 'r')
 params = ()
-for i in range(10):  # update the value, depends on which layer params are being saved
+for i in range(12):  # update the value, depends on which layer params are being saved
 	W = theano.shared(cPickle.load(load_file), borrow=True)
 	b = theano.shared(cPickle.load(load_file), borrow=True)
 	params+=([W, b],)
-	if (i==5):   # change for params introducing locally connected autoencoders
-		params+=([W,b], [W,b])
+	#if (i==5):   # change for params introducing locally connected autoencoders
+	#	params+=([W,b], [W,b])
 load_file.close()
 
 x = T.tensor4('x')
 vis_model = model(np.random.RandomState(23455), x, (96, 336), 1, True, params)
-visualize = fn([x], [vis_model.layer1.output, vis_model.layer2.output, vis_model.layer3.output, vis_model.layer4.output, vis_model.layer5.output, vis_model.layer8.output, vis_model.layer9.output, vis_model.layer10.output, vis_model.layer11.output, vis_model.layer12.output ])
+visualize = fn([x], [vis_model.layer1.output, vis_model.layer2.output, vis_model.layer3.output, vis_model.layer4.output, vis_model.layer5.output,  vis_model.layer6.output, vis_model.layer7.output, vis_model.layer8.output, vis_model.layer9.output, vis_model.layer10.output, vis_model.layer11.output, vis_model.layer12.output ])
 
 image = '../data/scaled-0.25/I1_000001.png'
 image = Image.open(image).convert('L')
 image = np.array(image, dtype='float32') / 256.
 image = image.reshape(1, 1, 96, 336)
 outputs = visualize(image)
+print 'hallelujah'
 
 
 image_files = []
@@ -45,7 +46,7 @@ for img in image_files:
 	img = Image.open(img).convert('L')
 	img = np.array(img, dtype='float32')/256.
 	img = img.reshape(1, 1, 96, 336)
-	representation = visualize(img)[4].flatten()
+	representation = visualize(img)[5].flatten()
 	rep_list.append(representation)
 
 for i in range(len(rep_list)):
@@ -68,12 +69,12 @@ plt.axis('off');
 plt.imshow(conf_mat);
 plt.show()
 
-'''
+
 plt.gray()
 plt.subplot(1, 1, 1); plt.axis('off'); plt.imshow(outputs[-1][0, 0, :, :])
 plt.show()
 
-
+'''
 plt.subplot(10, 11, 1); plt.axis('off'); plt.imshow(image[0, 0, :, :])
 layer_sizes = [2, 3, 5, 8, 5, 8, 5, 3, 2, 1]
 
