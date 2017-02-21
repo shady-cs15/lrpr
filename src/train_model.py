@@ -19,16 +19,66 @@ from pretrain_model import pretrain_conv_autoencoder, pretrain_local_autoencoder
 # remove if needed
 from conv_layer import conv_pool_layer
 
-def usage():
-	print 'Usage: python train_model.py img_h img_w'
-	sys.exit(1)
+#def usage():
+#print 'Usage: python train_model.py img_h img_w'
+#sys.exit(1)
 
-if len(sys.argv) < 3:
-	usage()
+#if len(sys.argv) < 3:
+#	usage()
 
-img_h = int(sys.argv[1])
-img_w = int(sys.argv[2])
+img_h = 64#int(sys.argv[1])
+img_w = 64 #int(sys.argv[2])
 
+train_dir = os.listdir('tiny-imagenet-200/train')[0:10]
+valid_dir = os.listdir('tiny-imagenet-200/val')[:10]
+test_dir = os.listdir('tiny-imagenet-200/test')[:10]
+
+train_data = ()
+print '\n'
+for i in range(len(train_dir)):
+	print '\033[Floaded train data:', i*100./len(train_dir), '%'
+	im= os.listdir('tiny-imagenet-200/train/'+train_dir[i]+'/images')
+	for j in range(len(im)):
+		img = Image.open('tiny-imagenet-200/train/'+train_dir[i]+'/images/'+im[j]).convert('RGB')
+		img = np.array(img, dtype='float32').transpose(2, 0, 1)/256.
+		img = img.reshape(1, 3, 64, 64)
+		train_data +=(img, )
+train_data = np.concatenate(train_data)
+print train_data.shape
+train_set = theano.shared(np.asarray(train_data, dtype=theano.config.floatX), borrow=True)
+n_train_images = train_data.shape[0]
+
+valid_data = ()
+print '\n'
+
+im= os.listdir('tiny-imagenet-200/val/images')
+for j in range(len(im)):
+	print '\033[Floaded valid data:', j*100./len(im), '%'
+	img = Image.open('tiny-imagenet-200/val/images/'+im[j]).convert('RGB')
+	img = np.array(img, dtype='float32').transpose(2, 0, 1)/256.
+	img = img.reshape(1, 3, 64, 64)
+	valid_data +=(img, )
+valid_data = np.concatenate(valid_data)
+print valid_data.shape
+valid_set = theano.shared(np.asarray(valid_data, dtype=theano.config.floatX), borrow=True)
+n_valid_images = valid_data.shape[0]
+
+test_data = ()
+print '\n'
+
+im= os.listdir('tiny-imagenet-200/test/images')
+for j in range(len(im)):
+	print '\033[Floaded test data:', j*100./len(im), '%'
+	img = Image.open('tiny-imagenet-200/test/images/'+im[j]).convert('RGB')
+	img = np.array(img, dtype='float32').transpose(2, 0, 1)/256.
+	img = img.reshape(1, 3, 64, 64)
+	test_data +=(img, )
+test_data = np.concatenate(test_data)
+print test_data.shape
+test_set = theano.shared(np.asarray(test_data, dtype=theano.config.floatX), borrow=True)
+n_test_images = test_data.shape[0]
+
+'''
 image_files = []
 for f in os.listdir('../data/scaled-0.25'):
 	if f=='.DS_Store':
@@ -69,6 +119,7 @@ for f in image_files[n_train_images+n_valid_images:]:
 	test_set+=(img, )
 test_set = numpy.concatenate(test_set, axis=0)
 test_set = theano.shared(np.asarray(test_set, dtype=theano.config.floatX), borrow=True)
+'''
 
 rng = np.random.RandomState(23455)
 dummy_wt = theano.shared(numpy.asarray(rng.uniform(low=-1., high=-1., size=(1, 1)), dtype=theano.config.floatX), borrow=True)
@@ -82,11 +133,12 @@ def dump_params(params, save_file):
 	save_file.close()
 	print 'params dumped in', save_file 
 
+'''
 def pretrain_nnet(data_set, n_train_images=100, batch_size=5, learning_rate=0.1):
 	print '\n', '#'*50
 	print 'starting Greedy Layerwise Unsupervised Pretraining ...'
 	layer0 = data_set
-	'''
+	
 	layer1, params_1 = pretrain_conv_autoencoder(1, layer0, (batch_size, 1, 96, 336), (2, 1, 3, 3), 5, (1, 1), learning_rate)
 	dump_params(layer1.params, 'pretrainparams1.pkl')
 	dump_params(params_1, 'pretrainparams_1.pkl')
@@ -111,8 +163,7 @@ def pretrain_nnet(data_set, n_train_images=100, batch_size=5, learning_rate=0.1)
 	dump_params(layer5.params, 'pretrainparams5.pkl')
 	dump_params(params_5, 'pretrainparams_5.pkl')
 	print '\n'
-	'''
-
+	
 	n_pretrained_layers = 5
 	n_test = train_set.shape.eval()[0]
 	img_shapes = [(n_test, 1, 96, 336), (n_test, 2, 96, 336), (n_test, 3, 48, 168), (n_test, 5, 48, 168), (n_test, 8, 24, 84)]
@@ -150,6 +201,7 @@ def pretrain_nnet(data_set, n_train_images=100, batch_size=5, learning_rate=0.1)
 
 	return layerwise_params
 	#return layer1.params, layer2.params, layer3.params, layer4.params, layer5.params, layer6.params, params_6, params_5, params_4, params_3, params_2, params_1
+'''
 
 def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.1, init=False, params=None):
 	print '#'*50
@@ -184,7 +236,7 @@ def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.1, init=
 	n_test_batches = n_examples[2]/batch_size
 
 	epoch = 0
-	n_epochs = 200
+	n_epochs = 2000
 	done_looping = False
 	patience = 10000
 	patience_increase = 2
@@ -221,6 +273,12 @@ def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.1, init=
 			]
 			test_err=np.mean(test_losses)
 			print '\tepoch %i, minibatch %i/%i, mean test reconstruction error: %f' %(epoch, mini_batch_index+1, n_train_batches, test_err)
+			
+			save_file = open('trained_params.pkl', 'wb')
+			for i in range(len(params)):
+				cPickle.dump(params[i].get_value(borrow=True), save_file, -1)
+			save_file.close()
+			print 'saved trained params @', save_file
 
 		if patience<=iter:
 			done_looping=True
@@ -236,11 +294,5 @@ def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.1, init=
 	#	plt.subplot(1, 1, i); plt.axis('off'); plt.imshow(f_img[0, i-1, :, :])
 	# plt.show()
 	# block ends here
-	save_file = open('trained_params.pkl', 'wb')
-	for i in range(len(params)):
-		cPickle.dump(params[i].get_value(borrow=True), save_file, -1)
-	save_file.close()
-	print 'saved trained params @', save_file
-
-params = pretrain_nnet(train_set, n_train_images)
-train_nnet(rng, (train_set, valid_set, test_set), (n_train_images, n_valid_images, n_test_images), init=True, params=params)
+#params = pretrain_nnet(train_set, n_train_images)
+train_nnet(rng, (train_set, valid_set, test_set), (n_train_images, n_valid_images, n_test_images), init=False, params=params)

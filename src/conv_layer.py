@@ -2,7 +2,7 @@ import numpy
 import theano
 import theano.tensor as T
 from theano.tensor.nnet import conv
-from theano.tensor.signal import downsample
+from theano.tensor.signal import pool
 
 class conv_pool_layer(object):
     
@@ -47,7 +47,7 @@ class conv_pool_layer(object):
             border_mode='valid'
         )
 
-        pooled_out = downsample.max_pool_2d(
+        pooled_out = pool.pool_2d(
             input=conv_out,
             ds=poolsize,
             ignore_border=True
