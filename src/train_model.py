@@ -29,9 +29,9 @@ from conv_layer import conv_pool_layer
 img_h = 64#int(sys.argv[1])
 img_w = 64 #int(sys.argv[2])
 
-train_dir = os.listdir('tiny-imagenet-200/train')[0:10]
-valid_dir = os.listdir('tiny-imagenet-200/val')[:10]
-test_dir = os.listdir('tiny-imagenet-200/test')[:10]
+train_dir = os.listdir('tiny-imagenet-200/train')
+valid_dir = os.listdir('tiny-imagenet-200/val')
+test_dir = os.listdir('tiny-imagenet-200/test')
 
 train_data = ()
 print '\n'
@@ -213,6 +213,14 @@ def train_nnet(rng, data_set, n_examples, batch_size=5, learning_rate=0.1, init=
 
 	cost = T.mean(T.sqr(model_.layer12.output-x))
 	params = model_.layer1.params + model_.layer2.params + model_.layer3.params + model_.layer4.params + model_.layer5.params + model_.layer6.params + model_.layer7.params + model_.layer8.params + model_.layer9.params + model_.layer10.params + model_.layer11.params + model_.layer12.params
+
+	l2 = 0.
+	
+	for i in range(len(params)):
+		p = params[i].get_value(borrow=True)
+		l2 = l2 + 0.01*T.sum(T.sqr(p))
+	cost = cost + l2
+
 	grads = T.grad(cost, params)
 	updates = [
 		(param_i, param_i - learning_rate*grad_i)
